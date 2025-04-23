@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>COVID-19 Dashboard</title>
+    <link rel="stylesheet" href="../static/css/style.css">
+    <script src="https://cdn.plot.ly/plotly-2.30.0.min.js"></script>
+  </head>
+<body>
+    <div class="header">
+        <h1 id="page-title">Overview</h1>
+      </div>
+      
+      <div id="main-content">
+        <div id="map-and-charts">
+      
+          <!-- MAP CONTAINER -->
+          <div id="map-container">
+            <!-- Stats Overview (Inside Map Section) -->
+            <div class="stats-overview">
+              <div class="stat-box">
+                <h4 id="new_case-label">New Cases</h4>
+                <p id="new-cases">0</p>
+              </div>
+              <div class="stat-box">
+                <h4 id="hospitalized-label">Hospitalized</h4>
+                <p id="hospitalized">0</p>
+              </div>
+              <div class="stat-box">
+                <h4 id="discharged-label">Discharged</h4>
+                <p id="discharged">0</p>
+              </div>
+              <div class="stat-box">
+                <h4 id="deaths-label">Deaths</h4>
+                <p id="deaths">0</p>
+              </div>
+            </div>
+      
+            <!-- Map Iframe -->
+            <iframe id="mapFrame" src="/empty_map" style="height: 400px;width:800px"></iframe>
+      
+            <!-- Map Buttons -->
+            <div id="button-container">
+              <button onclick="refreshMap()">Refresh Map</button>
+              <button onclick="showClinics()">Show Clinics Only</button>
+              <button onclick="showPharmacy()">Show Pharmacy Only</button>
+            </div>
+          </div>
+      
+          <!-- CHARTS CONTAINER -->
+          <div id="charts-container">
+            <!-- Dropdown + Button (Inside Chart Section) -->
+            <div class="dropdown-controls">
+                <div class="dropdown-row">
+                  <label for="dropdownSelector"><strong>Select View:</strong></label>
+                  <select id="dropdownSelector" onchange="handleDropdownSelection()">
+                    <option value="facilities">Show Facilities</option>
+                    <option value="covid">Covid Disease</option>
+                  </select>
+                </div>
+                <button id="new-button">New Button</button>
+              </div>
+              
+      
+            <!-- Charts -->
+            <div id="covid-charts">
+              <div class="chart-block">{{ covid_line_chart | safe }}</div>
+              <div class="chart-block">{{ covid_bar_chart | safe }}</div>
+              <div class="chart-block">{{ covid_state_chart | safe }}</div>
+            </div>
+            
+            <div id="facility-chart" class="chart-block">
+              {{ facility_donut_chart | safe }}
+            </div>
+            
+        </div>
+      </div>
+      
+      <script src="../static/script.js"></script>
+
+</body>
+</html>
+<script>
+  const covidData = {
+    new_cases: "{{ covid_new_cases }}",
+    hospitalized: "{{ covid_hospitalized }}",
+    discharged: "{{ covid_discharged }}",
+    deaths: "{{ covid_deaths }}",
+    latest_case_date: "{{ covid_latest_case_date }}",
+    facility_total: "{{ facility_total }}",
+    clinic_count: "{{ clinic_count }}",
+    pharmacy_count: "{{ pharmacy_count }}"
+  };
+</script>
