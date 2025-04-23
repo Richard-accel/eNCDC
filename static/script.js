@@ -21,7 +21,7 @@ function showFacilities() {
     document.getElementById("page-title").textContent = "Facilities in Malaysia - " + getTodayString();
 
     // Show filter buttons
-    document.getElementById("button-container").style.display = "block";
+    document.getElementById("button-container1").style.display = "block";
 
     // Hide COVID charts
     document.getElementById("covid-charts").style.display = "none";
@@ -65,7 +65,7 @@ function showCovid() {
 
 
     // Hide map filter buttons
-    document.getElementById("button-container").style.display = "none";
+    document.getElementById("button-container1").style.display = "none";
 
     // Show COVID charts
     document.getElementById("covid-charts").style.display = "block";
