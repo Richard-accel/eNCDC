@@ -81,3 +81,32 @@ function getTodayString() {
         day: "numeric"
     });
 }
+
+// === JS for toggleMapFastapi ===
+function toggleMapFastapi() {
+    const toggle = document.getElementById('mapToggle');
+    const iframe = document.getElementById('mapFrame');
+    const buttons = document.getElementById('button-container1');
+  
+    if (toggle.checked) {
+      iframe.src = "/map/polygon?" + new Date().getTime();
+      buttons.style.display = "none";
+    } else {
+      iframe.src = "/map/facilities?" + new Date().getTime();
+      buttons.style.display = "block";
+    }
+  }
+  
+  // Modify this to show/hide toggle only for facilities
+  function handleDropdownSelection() {
+    const selected = document.getElementById("dropdownSelector").value;
+  
+    if (selected === "facilities") {
+      showFacilities();
+      document.getElementById("map-toggle-container").style.display = "flex";
+    } else if (selected === "covid") {
+      showCovid();
+      document.getElementById("map-toggle-container").style.display = "none";
+    }
+  }
+  

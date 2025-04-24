@@ -11,6 +11,7 @@ import json
 import os
 from sqlalchemy import create_engine
 from keplergl import KeplerGl
+import copy
 
 
 app = FastAPI()
@@ -19,6 +20,10 @@ app = FastAPI()
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 templates = Jinja2Templates(directory="templates")
+
+# === Load GeoJSON for polygon ===
+with open("data/geoBoundaries-MYS-ADM1_simplified.geojson", "r", encoding="utf-8") as f:
+    geojson = json.load(f)
 
 
 # Kepler map configuration
@@ -71,6 +76,53 @@ config = {
     }
 }
 
+# === Kepler Polygon Config ===
+polygon_map_config = {
+    'version': 'v1',
+    'config': {
+        'mapState': {
+            'latitude': 4.2105,
+            'longitude': 101.9758,
+            'zoom': 4.5
+        },
+        'visState': {
+            'layers': [{
+                'id': 'polygon_layer',
+                'type': 'geojson',
+                'config': {
+                    'dataId': 'Malaysia_States',
+                    'label': 'State Polygon',
+                    'color': [255, 203, 153],
+                    'highlightColor': [252, 242, 26, 255],
+                    'columns': {
+                        'geojson': '_geojson'
+                    },
+                    'isVisible': True,
+                    'visConfig': {
+                        'opacity': 0.5,
+                        'thickness': 1,
+                        'colorRange': {
+                            'name': 'ColorBrewer YlOrRd-6',
+                            'type': 'sequential',
+                            'category': 'ColorBrewer',
+                            'colors': ['#ffffb2', '#fecc5c', '#fd8d3c', '#f03b20', '#bd0026']
+                        },
+                        'filled': True
+                    }
+                }
+            }],
+            'interactionConfig': {
+                'tooltip': {
+                    'fieldsToShow': {
+                        'Malaysia_States': ['shapeName', 'clinic_count', 'pharmacy_count']
+                    },
+                    'enabled': True
+                }
+            }
+        }
+    }
+}
+
 # === Covid data configuration 
 # Load Covid CSV data
 csv_data = pd.read_csv('https://raw.githubusercontent.com/MoH-Malaysia/covid19-public/refs/heads/main/epidemic/cases_state.csv')
@@ -111,7 +163,7 @@ DB_HOST = "dpg-cvr1u8ngi27c738j3acg-a.singapore-postgres.render.com"
 DB_PORT = "5432"
 DB_NAME = "testing1_415q"
 engine = create_engine(f"postgresql+psycopg2://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}")
-query = "SELECT name, amenity, latitude, longitude FROM health_facilities;"
+query = "SELECT name, amenity, state, latitude, longitude FROM health_facilities;"
 
 # === Covid Data ===
 cases_url = "https://raw.githubusercontent.com/MoH-Malaysia/covid19-public/main/epidemic/cases_malaysia.csv"
@@ -159,6 +211,31 @@ def generate_charts():
         "covid_bar_chart": bar_fig.to_html(full_html=False),
         "covid_state_chart": state_fig.to_html(full_html=False),
     }
+
+# === Generate Polygon HTML ===
+def generate_polygon_html():
+    df = pd.read_sql(query, engine)
+    df['amenity'] = df['amenity'].str.lower()
+    counts = df.groupby('state')['amenity'].value_counts().unstack(fill_value=0).reset_index()
+    counts.rename(columns={'clinic': 'clinic_count', 'pharmacy': 'pharmacy_count'}, inplace=True)
+
+    geojson_copy = copy.deepcopy(geojson)  # 🔧 Important
+
+    for feature in geojson_copy['features']:
+        state_name = feature['properties'].get('shapeName', '').lower()
+        match = counts[counts['state'].str.lower() == state_name]
+        if not match.empty:
+            feature['properties']['clinic_count'] = int(match['clinic_count'].values[0])
+            feature['properties']['pharmacy_count'] = int(match['pharmacy_count'].values[0])
+        else:
+            feature['properties']['clinic_count'] = 0
+            feature['properties']['pharmacy_count'] = 0
+
+    kepler_map = KeplerGl(height=450, read_only=True, width=900)
+    kepler_map.add_data(data=geojson_copy, name='Malaysia_States')  # 🔧 use the copy here
+    kepler_map.config = polygon_map_config
+
+    return kepler_map._repr_html_()
 
 @app.get("/")
 def home(request: Request):
@@ -223,3 +300,9 @@ def facility_kpi():
         "pharmacy_count": pharmacies,
         "facility_donut_chart": pie_fig.to_html(full_html=False)
     }
+
+# === Route for Polygon Map ===
+@app.get("/map/polygon", response_class=HTMLResponse)
+def map_polygon():
+    html = generate_polygon_html()
+    return HTMLResponse(content=html, status_code=200)

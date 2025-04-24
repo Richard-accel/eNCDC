@@ -60,7 +60,15 @@
                     <option value="covid">Covid Disease</option>
                   </select>
                 </div>
-                <button id="new-button">New Button</button>
+                <!-- ✅ Toggle added -->
+  <div class="toggle-container" id="map-toggle-container" style="display: none;">
+    <span>POI</span>
+    <label class="switch">
+      <input type="checkbox" id="mapToggle" onchange="toggleMapFastapi()">
+      <span class="slider round"></span>
+    </label>
+    <span>Polygon Map</span>
+  </div>
               </div>
               
       
