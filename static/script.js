@@ -8,13 +8,23 @@ function handleDropdownSelection() {
 }
 
 function refreshMap() {
-    document.getElementById("mapFrame").src = "/empty_map?" + new Date().getTime();
-    document.getElementById("page-title").textContent = "Overview - " + getTodayString();
-    document.getElementById("new-cases").textContent = "0";
-    document.getElementById("hospitalized").textContent = "0";
-    document.getElementById("discharged").textContent = "0";
-    document.getElementById("deaths").textContent = "0";
+  const selected = document.getElementById("dropdownSelector").value;
+  const isPolygon = document.getElementById("mapToggle").checked;
+
+  // ✅ Only run when in Facilities mode
+  if (selected === "facilities") {
+      if (isPolygon) {
+          // Polygon view
+          document.getElementById("mapFrame").src = "/map/polygon?" + new Date().getTime();
+      } else {
+          // POI view
+          document.getElementById("mapFrame").src = "/map/facilities?" + new Date().getTime();
+      }
+  }
 }
+
+
+
 function showFacilities() {
     // Load the map
     document.getElementById("mapFrame").src = "/map/facilities?" + new Date().getTime();
@@ -54,24 +64,36 @@ function showPharmacy() {
     document.getElementById("page-title").textContent = "Pharmacy in Malaysia - " + getTodayString();
 
 }
+
 function showCovid() {
-    
-    document.getElementById("mapFrame").src = "/map/covid?" + new Date().getTime();
-    document.getElementById("page-title").textContent = "COVID-19 Malaysia - " + covidData.latest_case_date;
-    document.getElementById("new-cases").textContent = covidData.new_cases;
-    document.getElementById("hospitalized").textContent = covidData.hospitalized;
-    document.getElementById("discharged").textContent = covidData.discharged;
-    document.getElementById("deaths").textContent = covidData.deaths;
+  document.getElementById("mapFrame").src = "/map/covid?" + new Date().getTime();
+  document.getElementById("page-title").textContent = "COVID-19 Malaysia - " + covidData.latest_case_date;
 
+  // Update KPI box labels
+  document.getElementById("new_case-label").textContent = "New Cases";
+  document.getElementById("hospitalized-label").textContent = "Hospitalized";
+  document.getElementById("discharged-label").textContent = "Discharged";
+  document.getElementById("deaths-label").textContent = "Deaths";
 
-    // Hide map filter buttons
-    document.getElementById("button-container1").style.display = "none";
+  // Update KPI values
+  document.getElementById("new-cases").textContent = covidData.new_cases;
+  document.getElementById("hospitalized").textContent = covidData.hospitalized;
+  document.getElementById("discharged").textContent = covidData.discharged;
+  document.getElementById("deaths").textContent = covidData.deaths;
 
-    // Show COVID charts
-    document.getElementById("covid-charts").style.display = "block";
-    // Hide donut chart
-    document.getElementById("facility-chart").style.display = "none";
+  // Show 4 KPI boxes
+  document.querySelectorAll('.stat-box')[3].style.display = "block";
+
+  // Hide map filter buttons
+  document.getElementById("button-container1").style.display = "none";
+
+  // Show COVID charts
+  document.getElementById("covid-charts").style.display = "block";
+  
+  // Hide donut chart
+  document.getElementById("facility-chart").style.display = "none";
 }
+
 
 function getTodayString() {
     const today = new Date();

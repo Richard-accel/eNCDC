@@ -13,20 +13,19 @@ from sqlalchemy import create_engine
 from keplergl import KeplerGl
 import copy
 
-
+# Initialize the FastAPI app
 app = FastAPI()
 
 # Mount static and templates directories
 app.mount("/static", StaticFiles(directory="static"), name="static")
-
 templates = Jinja2Templates(directory="templates")
 
-# === Load GeoJSON for polygon ===
+# Load Malaysia simplified polygon GeoJSON for state boundaries
 with open("data/geoBoundaries-MYS-ADM1_simplified.geojson", "r", encoding="utf-8") as f:
     geojson = json.load(f)
 
 
-# Kepler map configuration
+# Configuration for COVID-19 map (polygon-based)
 config = {
     'version': 'v1',
     'config': {
@@ -76,7 +75,7 @@ config = {
     }
 }
 
-# === Kepler Polygon Config ===
+# Configuration for polygon map (state-based with clinic and pharmacy counts)
 polygon_map_config = {
     'version': 'v1',
     'config': {
@@ -122,6 +121,51 @@ polygon_map_config = {
         }
     }
 }
+
+# Configuration for point map (facilities plotted as points)
+point_config = {
+    "version": "v1",
+    "config": {
+        "mapState": {
+            "latitude": 4.2105,
+            "longitude": 101.9758,
+            "zoom": 5
+        },
+        "visState": {
+            "layers": [{
+                "id": "facility_layer",
+                "type": "point",
+                "config": {
+                    "dataId": "All Facilities",
+                    "label": "Health Facilities",
+                    "color": [0, 153, 255],
+                    "columns": {
+                        "lat": "latitude",
+                        "lng": "longitude"
+                    },
+                    "isVisible": True,
+                    "visConfig": {
+                        "radius": 10,
+                        "fixedRadius": False,
+                        "opacity": 0.8,
+                        "outline": False,
+                        "thickness": 2,
+                        "filled": True
+                    }
+                }
+            }],
+            "interactionConfig": {
+                "tooltip": {
+                    "fieldsToShow": {
+                        "All Facilities": ["name", "amenity", "state"]
+                    },
+                    "enabled": True
+                }
+            }
+        }
+    }
+}
+
 
 # === Covid data configuration 
 # Load Covid CSV data
@@ -254,7 +298,7 @@ def map_facilities():
     facilities_df = pd.read_sql(query, engine)
     facilities_map = KeplerGl(height=450,read_only=True,width=900)
     facilities_map.add_data(data=facilities_df, name='All Facilities')
-    facilities_map.config = config
+    facilities_map.config = config 
     return HTMLResponse(content=facilities_map._repr_html_(), status_code=200)
 
 @app.get("/map/clinic", response_class=HTMLResponse)
