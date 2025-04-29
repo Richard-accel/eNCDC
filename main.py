@@ -2,6 +2,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from fastapi import Query
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
@@ -15,6 +16,8 @@ import copy
 
 # Initialize the FastAPI app
 app = FastAPI()
+
+patient_cases_df = None
 
 # Mount static and templates directories
 app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -209,6 +212,16 @@ DB_NAME = "testing1_415q"
 engine = create_engine(f"postgresql+psycopg2://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}")
 query = "SELECT name, amenity, state, latitude, longitude FROM health_facilities;"
 
+# === Patient Cases DB Config ===
+PATIENT_DB_USER = "postgres.hrbvbvlssmffrsjzzgcc"
+PATIENT_DB_PASSWORD = "Novoheal9527"
+PATIENT_DB_HOST = "aws-0-ap-southeast-1.pooler.supabase.com"
+PATIENT_DB_PORT = "6543"
+PATIENT_DB_NAME = "postgres"
+patient_engine = create_engine(f"postgresql+psycopg2://{PATIENT_DB_USER}:{PATIENT_DB_PASSWORD}@{PATIENT_DB_HOST}:{PATIENT_DB_PORT}/{PATIENT_DB_NAME}")
+
+patient_query = "SELECT * FROM encdc.patientcase;"
+
 # === Covid Data ===
 cases_url = "https://raw.githubusercontent.com/MoH-Malaysia/covid19-public/main/epidemic/cases_malaysia.csv"
 hospital_url = "https://raw.githubusercontent.com/MoH-Malaysia/covid19-public/main/epidemic/hospital.csv"
@@ -281,11 +294,33 @@ def generate_polygon_html():
 
     return kepler_map._repr_html_()
 
+def load_patient_cases():
+    global patient_cases_df
+    patient_cases_df = pd.read_sql(patient_query, patient_engine)
+
+load_patient_cases()
+
 @app.get("/")
 def home(request: Request):
     data = generate_charts()
-    facility_data= facility_kpi()
-    return templates.TemplateResponse("index.html", {"request": request, **data, **facility_data})
+    facility_data = facility_kpi()
+
+    # Add patient cases json for KPI counting
+    if patient_cases_df is not None:
+        temp_df = patient_cases_df.copy()
+        for col in temp_df.select_dtypes(include=['datetime64[ns]', 'datetime64[ns, UTC]']):
+            temp_df[col] = temp_df[col].astype(str)  # 🛠️ convert datetime to string
+        patient_cases_json = temp_df.to_dict(orient="records")
+    else:
+        patient_cases_json = []
+
+    return templates.TemplateResponse("index.html", {
+        "request": request,
+        **data,
+        **facility_data,
+        "patient_cases_json": json.dumps(patient_cases_json)
+    })
+
 
 @app.get("/empty_map", response_class=HTMLResponse)
 def empty_map():
@@ -350,3 +385,108 @@ def facility_kpi():
 def map_polygon():
     html = generate_polygon_html()
     return HTMLResponse(content=html, status_code=200)
+
+
+@app.get("/map/patientcases", response_class=HTMLResponse)
+def map_patientcases(condition: str = Query(None)):
+    global patient_cases_df
+
+    if patient_cases_df is None:
+        return HTMLResponse(content="<h3>Patient Cases Data Not Loaded.</h3>", status_code=500)
+
+    filtered_df = patient_cases_df
+    if condition:
+        filtered_df = patient_cases_df[patient_cases_df['conditionname'].str.lower() == condition.lower()]
+
+    patient_map = KeplerGl(height=450, read_only=True, width=900)
+    patient_map.add_data(data=filtered_df, name="Patient Cases")
+
+    patient_map.config = {
+        "version": "v1",
+        "config": {
+            "mapState": {"latitude": 4.2105, "longitude": 101.9758, "zoom": 5},
+            "visState": {
+                "layers": [{
+                    "id": "patient_layer",
+                    "type": "point",
+                    "config": {
+                        "dataId": "Patient Cases",
+                        "label": "Patient Cases",
+                        "color": [255, 0, 0],
+                        "columns": {"lat": "addresslatitude", "lng": "addresslongitude"},
+                        "isVisible": True,
+                        "visConfig": {"radius": 8, "opacity": 0.8, "filled": True}
+                    }
+                }],
+                "interactionConfig": {
+                    "tooltip": {
+                        "fieldsToShow": {"Patient Cases": ["caseid", "patientname", "patientgender", "statename", "conditionname", "casestatus"]},
+                        "enabled": True
+                    }
+                }
+            }
+        }
+    }
+
+    return HTMLResponse(content=patient_map._repr_html_(), status_code=200)
+
+@app.get("/map/patientcases/{condition}", response_class=HTMLResponse)
+def map_patientcases_condition(condition: str):
+    global patient_cases_df
+
+    if patient_cases_df is None:
+        return HTMLResponse(content="<h3>Patient Cases Data Not Loaded.</h3>", status_code=500)
+
+    filtered_df = patient_cases_df[patient_cases_df['conditionname'].str.lower() == condition.lower()]
+
+    patient_map = KeplerGl(height=450, read_only=True, width=900)
+    patient_map.add_data(data=filtered_df, name="Patient Cases")
+
+    patient_map.config = {
+        "version": "v1",
+        "config": {
+            "mapState": {"latitude": 4.2105, "longitude": 101.9758, "zoom": 5},
+            "visState": {
+                "layers": [{
+                    "id": "patient_layer",
+                    "type": "point",
+                    "config": {
+                        "dataId": "Patient Cases",
+                        "label": "Patient Cases",
+                        "color": [255, 0, 0],
+                        "columns": {"lat": "addresslatitude", "lng": "addresslongitude"},
+                        "isVisible": True,
+                        "visConfig": {"radius": 8, "opacity": 0.8, "filled": True}
+                    }
+                }],
+                "interactionConfig": {
+                    "tooltip": {
+                        "fieldsToShow": {"Patient Cases": ["caseid", "patientname", "patientgender", "statename", "conditionname", "casestatus"]},
+                        "enabled": True
+                    }
+                }
+            }
+        }
+    }
+
+    return HTMLResponse(content=patient_map._repr_html_(), status_code=200)
+
+@app.get("/kpi/patientcases")
+def patientcases_kpi():
+    df = pd.read_sql(patient_query, patient_engine)   # ❗ reload fresh data like facility_kpi
+
+    # 👇 Add debug here
+    print("==== Patient Cases Data ====")
+    print(df[['caseid', 'casestatus']].head(20))  # show 20 rows only
+    print("============================")
+
+    submitted = len(df[df['casestatus'].str.lower() == "submitted"])
+    closed = len(df[df['casestatus'].str.lower() == "closed"])
+    not_submitted = len(df[df['casestatus'].str.lower() == "not submitted"])
+
+    return {
+        "submitted": submitted,
+        "closed": closed,
+        "not_submitted": not_submitted
+    }
+

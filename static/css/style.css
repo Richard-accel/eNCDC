@@ -140,6 +140,14 @@ body {
   margin-bottom: 20px;
 }
 
+.patient-stats-overview {
+  display: flex;
+  gap: 15px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
 .dropdown-controls {
   display: flex;
   flex-direction: column;

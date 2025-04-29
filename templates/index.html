@@ -35,6 +35,21 @@
                 <p id="deaths">0</p>
               </div>
             </div>
+            <div id="patient-stats-overview" class="stats-overview" style="display: none; margin-bottom: 20px;">
+              <div class="stat-box">
+                <h4>Submitted</h4>
+                <p id="submitted-count">0</p>
+              </div>
+              <div class="stat-box">
+                <h4>Closed</h4>
+                <p id="closed-count">0</p>
+              </div>
+              <div class="stat-box">
+                <h4>Not Submitted</h4>
+                <p id="not-submitted-count">0</p>
+              </div>
+            </div>
+            
       
             <!-- Map Iframe -->
             <iframe id="mapFrame" src="/empty_map" style="height: 400px;width:800px"></iframe>
@@ -46,6 +61,19 @@
               <button onclick="showClinics()">Show Clinics Only</button>
               <button onclick="showPharmacy()">Show Pharmacy Only</button>
             </div>
+
+            <div id="patient-filter-buttons" style="display: none; justify-content: center; gap: 10px; margin-top: 10px;">
+              <button onclick="showDengueCases()" style="padding:8px 15px; background-color: #f44336; color: white; border: none; border-radius: 5px;">Show Dengue</button>
+              <button onclick="showInfluenzaCases()" style="padding:8px 15px; background-color: #4CAF50; color: white; border: none; border-radius: 5px;">Show Influenza</button>
+              <button id="fullscreen-map-btn" onclick="openFullscreenMap()" style="display: none; padding: 8px 15px; background-color: #333; color: white; border: none; border-radius: 5px;">View Fullscreen Map</button>
+            </div>
+
+            <!-- Fullscreen Overlay Container -->
+            <div id="fullscreen-map-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: rgba(0,0,0,0.85); z-index: 9999;">
+              <button onclick="closeFullscreenMap()" style="position: absolute; top: 10px; right: 20px; font-size: 20px; background-color: red; color: white; border: none; padding: 5px 10px; border-radius: 4px;">X</button>
+              <iframe id="fullscreen-map-frame" src="/map/patientcases" style="width: 95vw; height: 90vh; margin: 50px auto; display: block; border: none; border-radius: 10px;"></iframe>
+            </div>
+
           </div>
         </div>
       
@@ -58,6 +86,7 @@
                   <select id="dropdownSelector" onchange="handleDropdownSelection()">
                     <option value="facilities">Show Facilities</option>
                     <option value="covid">Covid Disease</option>
+                    <option value="patientcases">Patient Cases</option>
                   </select>
                 </div>
                 <!-- ✅ Toggle added -->
@@ -102,3 +131,7 @@
     pharmacy_count: "{{ pharmacy_count }}"
   };
 </script>
+<script id="patient-cases-json" type="application/json">
+  {{ patient_cases_json | safe }}
+</script>
+
