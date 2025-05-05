@@ -111,6 +111,20 @@
             <div id="facility-chart" class="chart-block">
               {{ facility_donut_chart | safe }}
             </div>
+
+            <div id="patient-gender-chart" class="chart-block" style="display: none;">
+              {{ patient_gender_donut | safe }}
+            </div>
+
+            
+            <!-- Age Group Bar Chart -->
+            <div id="patient-age-bar-chart" class="chart-block" style="display: none;">
+              {{ patient_age_bar | safe }}
+            </div>
+            
+            <div id="patient-line-chart" class="chart-block" style="display: none;">
+              {{ patient_cases_over_time_chart | safe }}
+            </div>
             
         </div>
       </div>

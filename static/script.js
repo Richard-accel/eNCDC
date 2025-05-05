@@ -74,6 +74,8 @@ function showFacilities() {
 
     document.getElementById("fullscreen-map-btn").style.display = "none";
 
+    document.getElementById("patient-gender-chart").style.display = "none";
+
 }
 
 function showClinics() {
@@ -116,6 +118,9 @@ function showCovid() {
   document.getElementById("facility-chart").style.display = "none";
 
   document.getElementById("fullscreen-map-btn").style.display = "none";
+
+  document.getElementById("patient-gender-chart").style.display = "none";
+
 }
 
 
@@ -171,24 +176,28 @@ function toggleMapFastapi() {
   function showPatientCases() {
     document.getElementById("mapFrame").src = "/map/patientcases?" + new Date().getTime();
     document.getElementById("page-title").textContent = "Patient Cases in Malaysia - " + getTodayString();
-
+  
     // Hide other sections
     document.getElementById("covid-charts").style.display = "none";
     document.getElementById("facility-chart").style.display = "none";
     document.getElementById("button-container1").style.display = "none";
-
+  
     // Show patient filter buttons
     document.getElementById("patient-filter-buttons").style.display = "flex";
-
-    // 🚀 Force update patient cases KPI immediately (even no filter)
+  
+    // KPI box
     fetchPatientCasesKPI();
-
-    // Show patient KPI box, hide old KPI box
     showPatientKPI();
+  
+    // Show patient-specific charts
+    document.getElementById("patient-gender-chart").style.display = "block";
+    document.getElementById("patient-age-bar-chart").style.display = "block";
+    document.getElementById("patient-line-chart").style.display = "block";
 
+  
     document.getElementById("fullscreen-map-btn").style.display = "inline-block";
-
-}
+  }
+  
   
 function showDengueCases() {
   document.getElementById("mapFrame").src = "/map/patientcases/dengue?" + new Date().getTime();

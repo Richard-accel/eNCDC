@@ -305,21 +305,56 @@ def home(request: Request):
     data = generate_charts()
     facility_data = facility_kpi()
 
-    # Add patient cases json for KPI counting
     if patient_cases_df is not None:
         temp_df = patient_cases_df.copy()
+
+        # Convert any datetime columns to string for JSON serialization
         for col in temp_df.select_dtypes(include=['datetime64[ns]', 'datetime64[ns, UTC]']):
-            temp_df[col] = temp_df[col].astype(str)  # 🛠️ convert datetime to string
+            temp_df[col] = temp_df[col].astype(str)
+
         patient_cases_json = temp_df.to_dict(orient="records")
+
+        # Gender donut chart
+        gender_counts = temp_df['patientgender'].value_counts().reset_index()
+        gender_counts.columns = ['Gender', 'Count']
+        gender_donut = px.pie(gender_counts, names='Gender', values='Count', title='Patient Gender Distribution', hole=0.4)
+        gender_donut_html = gender_donut.to_html(full_html=False)
+
+        # Age group bar chart
+        age_bins = [0, 20, 40, 60, 80, 100]
+        age_labels = ['1-20', '21-40', '41-60', '61-80', '81-100']
+        temp_df['age_group'] = pd.cut(temp_df['patientage'], bins=age_bins, labels=age_labels, right=True)
+        age_group_counts = temp_df['age_group'].value_counts().sort_index().reset_index()
+        age_group_counts.columns = ['Age Group', 'Count']
+        age_bar = px.bar(age_group_counts, x='Age Group', y='Count', title='Patient Age Distribution', color='Age Group')
+        age_bar_html = age_bar.to_html(full_html=False)
+
+        # ✅ Line chart: Number of cases over time based on diagnosisdatetime
+        if 'diagnosisdatetime' in temp_df.columns:
+            temp_df['diagnosis_date'] = pd.to_datetime(temp_df['diagnosisdatetime'], errors='coerce').dt.date
+            daily_counts = temp_df.groupby('diagnosis_date').size().reset_index(name='Count')
+            line_chart = px.line(daily_counts, x='diagnosis_date', y='Count', title='Patient Cases Over Time')
+            line_chart_html = line_chart.to_html(full_html=False)
+        else:
+            line_chart_html = ""
+
     else:
         patient_cases_json = []
+        gender_donut_html = ""
+        age_bar_html = ""
+        line_chart_html = ""
 
     return templates.TemplateResponse("index.html", {
         "request": request,
         **data,
         **facility_data,
-        "patient_cases_json": json.dumps(patient_cases_json)
+        "patient_cases_json": json.dumps(patient_cases_json),
+        "patient_gender_donut": gender_donut_html,
+        "patient_age_bar": age_bar_html,
+        "patient_cases_over_time_chart": line_chart_html  # ✅ Don't forget the comma here
     })
+
+
 
 
 @app.get("/empty_map", response_class=HTMLResponse)
